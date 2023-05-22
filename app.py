@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import io
+import tempfile
 import pandas as pd
 from haystack import Pipeline
 from haystack.nodes import TextConverter, PreProcessor
@@ -49,8 +50,9 @@ def initialize_haystack(buffer):
     indexing_pipeline.add_node(component=preprocessor, name="PreProcessor", inputs=["TextConverter"])
     indexing_pipeline.add_node(component=document_store, name="DocumentStore", inputs=["PreProcessor"])
 
-    buffer.seek(0)
-    indexing_pipeline.run(file_paths=[buffer.getvalue()])
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(buffer.getvalue())
+    indexing_pipeline.run(file_paths=[temp_file.name])
 
     retriever = EmbeddingRetriever(
         document_store=document_store, embedding_model="sentence-transformers/multi-qa-mpnet-base-dot-v1"

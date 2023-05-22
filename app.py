@@ -50,7 +50,7 @@ def initialize_haystack(buffer):
     indexing_pipeline.add_node(component=document_store, name="DocumentStore", inputs=["PreProcessor"])
 
     buffer.seek(0)
-    indexing_pipeline.run(file_paths=[buffer.getvalue()], file_names=["dummy.txt"])
+    indexing_pipeline.run(file_paths=[buffer.getvalue()])
 
     retriever = EmbeddingRetriever(
         document_store=document_store, embedding_model="sentence-transformers/multi-qa-mpnet-base-dot-v1"

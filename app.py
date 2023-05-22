@@ -31,7 +31,7 @@ def create_buffer(filtered_std):
 
     return buffer
 
-def initialize_haystack(filtered_std):
+def initialize_haystack(buffer):
     document_store = InMemoryDocumentStore()
     indexing_pipeline = Pipeline()
     text_converter = TextConverter()

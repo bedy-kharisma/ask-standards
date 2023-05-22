@@ -44,7 +44,7 @@ def initialize_haystack(filtered_std):
 
         # Create a new text file with the given file name and write the text to it
         file_path = os.path.join(folder, file_name)
-        with open(file_path, "wb",  errors='ignore') as f:
+        with open(file_path, "wb") as f:
             f.write(buf.getbuffer())
             
     #reads all related files

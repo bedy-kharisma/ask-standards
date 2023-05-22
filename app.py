@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import io
 import pandas as pd
 from haystack import Pipeline
 from haystack.nodes import TextConverter, PreProcessor
@@ -19,6 +20,17 @@ def filter_data(keyword):
     filtered_std = df[df['text'].str.contains(keyword, flags=re.IGNORECASE)]
     return filtered_std
 
+def create_buffer(filtered_std):
+    buffer = io.BytesIO()
+
+    # Loop through each row of the dataframe
+    for index, row in filtered_std.iterrows():
+        # Get the file name and text for this row
+        text = row['text']
+        buffer.write(text.encode())
+
+    return buffer
+
 def initialize_haystack(filtered_std):
     document_store = InMemoryDocumentStore()
     indexing_pipeline = Pipeline()
@@ -37,19 +49,8 @@ def initialize_haystack(filtered_std):
     indexing_pipeline.add_node(component=preprocessor, name="PreProcessor", inputs=["TextConverter"])
     indexing_pipeline.add_node(component=document_store, name="DocumentStore", inputs=["PreProcessor"])
 
-    for index, row in filtered_std.iterrows():
-        # Get the file name and text for this row
-        file_name = row['name']
-        text = row['text']
-
-        # Create a new text file with the given file name and write the text to it
-        file_path = os.path.join(folder, file_name)
-        with open(file_path, "wb") as f:
-            f.write(buf.getbuffer())
-            
-    #reads all related files
-    files_to_index = [folder + "/" + f for f in os.listdir(folder)]
-    indexing_pipeline.run_batch(file_paths=files_to_index)
+    buffer.seek(0)
+    indexing_pipeline.run(file_paths=[buffer.getvalue()], file_names=["dummy.txt"])
 
     retriever = EmbeddingRetriever(
         document_store=document_store, embedding_model="sentence-transformers/multi-qa-mpnet-base-dot-v1"
@@ -66,13 +67,14 @@ def main():
 
     # Filter data based on keyword
     filtered_std = filter_data(keyword)
+    buffer = create_buffer(filtered_std)
     st.write(str(filtered_std.shape[0]) + " standards found")
     query = st.text_input("Enter a query", "vehicle at what speed that must perform dynamic performance test?")
     
     if st.button("Process"):
         with st.spinner('Wait for it...'):
             # Initialize Haystack pipeline
-            pipe = initialize_haystack(filtered_std)
+            pipe = initialize_haystack(buffer)
 
             # Perform the question answering
             prediction = pipe.run(
